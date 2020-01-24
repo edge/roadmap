@@ -45,6 +45,12 @@ Enhancing the cache by adopting a disk cache to support the existing memory cach
 ### CDN Gif support
 GIF resizing support in CDN.
 
+### CDN PNG Background colour
+Support for PNG background colour and background height/width property.
+
+### CDN Data view
+Introduce `json`, `toml` and `xml` parameter to output image data including colour palette data.
+
 ## Q2
 
 ### DNS zone support
