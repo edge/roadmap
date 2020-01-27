@@ -96,7 +96,7 @@ Services to be indexed outside of Consul.
 Storage to offer non-persisted limited beta for first phase of distribution tests.
 
 ### CDN Cache invalidation (phase 1)
-On a per Gateway basis the clearance of cached files or directories should be possible when authentication is provided.
+On a per Gateway basis the clearance of cached files should be possible when authentication is provided.
 
 ## Q3
 
