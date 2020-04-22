@@ -100,6 +100,12 @@ On a per Gateway basis the clearance of cached files should be possible when aut
 
 ## Q3
 
+# Remote attestation service
+R&D project into the viability of Intel SGX using a third party attestation service.
+
+# Advanced worker confidence score
+Gateways will load balance requests based on the a confidence score algorithm.
+
 ### DNS in Console
 Interface for creation and editing of DNS zones and records.
 
