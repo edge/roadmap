@@ -1,129 +1,74 @@
 # Edge Roadmap
 This roadmap provides a guide of the current expectations for delivery. It is subject to change and will be regularly updated as priorities change and new requirements are confirmed.
 
-## Q1
+## Complete the Replacement of Consul
 
-### Consul KV Migration
-Migration from using Consul to store network configurations to an RPC method. This will reduce load on the network, reduce latency between Stargate boot and config propagation, and reduce the number of open ports on Stargate.
+Consul's role in the network is made up of two core requirements. Configuration store, and service health. We've had issues with Consul's ability to handle the hundreds of health checks currently active on network contributors so we will migrate this logic to Stargates. We'll also move configuration propagation to the gRPC service, and have both Gateway and Host receive config updates via a bidirectional stream.
 
-### API 6 Migration
-Migrating the API 6.x makes it possible to offer application tokens in preperation for an Edge CLI upgrade which will see users only required to log in once.
+## Replace Vault
 
-### Stake watch service
-As part of a two-phase approach to onboarding automation, a process will be built to initially monitor a wallet but eventually a contract to determine the status of a device stake.
+Vault is currently used to handle ACL rules and device authentication, and works hand-in-hand with Consul. After completing the removal of Consul we'll need to migrate away from Vault entirely and use an authentication layer that combines in-memory bearer token distribution and user/pass login via the Network API.
 
-### DB data backup
-As part of a routine improvement plan for network resilience, databases are to be backed up to multiple sites.
+## Auto Certificate Service
 
-### Migrate all internal services to managed deployment
-An improvement to the deployment process introducing automation.
+We've been auto-generating certificates for a while now using Let's Encrypt, but the way Let's Encrypt challenges the verification process has changed slightly. It now attempts the same challenge from a number of different geographic zones, meaning that the Gateway that the certificate request came from isn't necessarily going to be the only one that receives the challenge. To circumvent this issue, we're going to create a service that acts as a global cache for challenge keys and intermediary certificates, so that all Gateways have a single source of truth for the challenge assets. You can think of this as a network attached oracle for certifcates.
 
-### Persist Gateway requests and data transfer per domain
-Increasing the accuracy of usage calculations by persisting the data transfer and request count through Gateway from telemetry.
+## Build Process
 
-### Console
-Rebuild of the existing my.edge.network UI as a webapp.
+olFor the core network services we are moving away from Jenkins as a build service and replacing it with GitHub Actions. GitHub Actions are a fantastic and cost effective way to build for all the environments we currently support, and doesn't require us to maintain ageing ARM hardware which often comes with patchy support and unreliability issues that can cause all sorts of issues when trying to rapidly build and deploy hot fixes.
 
-### Telemetry for request and payload data
-Gathering various data points through the use of a secure Prometheus endpoint.
+## Service Flushing and Staggered Deployment
 
-### Stake transfer (CLI only)
-CLI to allow the transfer of stake and the selection of available stake during the onboarding process.
+There's a lot of resilience in the network, but a slow deploy can sometimes cause response delays and even timeouts. To avoid this, we're going to move away from a global deploy, and instead create a deployment queue that will see the Stargates and Gateways redirect traffic before updating. A key part of this change is in Stargate, which responds to BGP requests and Gateway DNS load balancing. Stargate will need to take itself out of the BGP group and wait for DNS requests to fall off before self updating and reconnecting. When Gateway is queued for update, it'll need to remove the Gateway from DNS resolution load balancing and confirm that the Gateway is receiving no traffic before it's allowed to self-update and rejoin.
 
-### Migrate data to new platform
-Migrating disk stored data to the new containered platform.
+## Edge Storage
 
-### Launch new Console + rollout of API 6.X support
-Testing and deployment of the new webapp Console.
+Storage remains in alpha testing internally. It will be moved to a public beta and then in to production. The first production release will support small objects, < 2mb in size. This will be grown over time as we gather data about performance with real-world use cases and refine the platform.
 
-### Redirect API requests to new API server (post-API 6.x release)
-Redirect service as part of the migration from legacy API to API 6.x
+Storage allows users to encrypt, store and retrieve files that are persisted in memory on the network. Files can be encrypted with your own keys, in much the same that crypto wallets are secured.
 
-### Disk cache
-Enhancing the cache by adopting a disk cache to support the existing memory cache.
+Individual files are broken in to hundreds of file fragments and split across multiple Network Nodes. This provides an incredibly secure solution for the storage of data.
 
-### CDN Gif support
-GIF resizing support in CDN.
+We'll also be opening an API to directly access the storage services for beta testing.
 
-### CDN PNG Background colour
-Support for PNG background colour and background height/width property.
+## The Edge Site
 
-### CDN Data view
-Introduce `json`, `toml` and `xml` parameter to output image data including colour palette data.
+While the [edge.network](http://edge.network) website recently received an update for the content delivery section, this is just a stop-gap solution on the way to a full website rebuild. The new site will be rebuilt in Vue, and will then be hooked up to an API for dynamic content. The focus of the site will be primarily on showcasing and selling content delivery, while keeping the technical network sections in less prominent locations. As we move through the year additional service areas will be added to the site. In addition to this tweaks to the brand will be made and a fresh lick of paint applied throughout.
 
-## Q2
+We're an active business shifting from heavy R&D to a sales-led focus, so you can expect to see changes in this direction. This will include the opening up of a referral programme that will pay 10% of all revenue on service sales.
 
-### DNS zone support
-Support for zones to remove the potential for conflicting DNS records after ownership change.
+## Stake Automation
 
-### Migrate all internal services to managed deployment — Phase 2
-Further tasks to complete the migration to a fully managed deployment stack.
+We will be providing smart contracts for the automation of staking within the network to enable the hands-off addition and removal of nodes from the network. This will be enabled alongside the reissue of the Edge token.
 
-### Remote logging capture (core services only)
-Remote logging for all core services to improve disk performance and mitigate the potential for disk availability errors.
+## Node Yields and Performance Scoring
 
-### Alerts for all critical warnings
-Critical warnings to be part of an alerting service for core team.
+The metrics used for the determining of payouts in the network will be evolving to more directly reward the completion of jobs whilst also recognising the length of service of nodes. Ultimately the network only really cares about the fast delivery of jobs from the job queue on Gateways. To this end nodes will be scored on the basis of the number of jobs that they have returned relative to their peer group on the Gateway that they are attached to. Alongside this we are exploring moving to a yield basis for rewards, with nodes earning an APR tied to their network score. This approach more fairly distributes rewards whilst giving preference those nodes that perform best for the jobs available within their Gateway. It is hoped that this change will help to keep contributed network hardware current whilst better incentivising those areas that require more capacity. Over time we hope to start to visualise this, enabling a more direct understanding of the average hardware in any given geographical area, along with a view of the rewards available.
 
-### Sync build digests with API for Agent, Host and CDN
-Build digests to be persisted in the core database automatically after build.
+## Console/Services Split
 
-### Billing calculation based on Persist Gateway requests and data transfer per domain
-Billing service to calculate accurate usage using Gateway telemetry on a per domain basis.
+Currently Console handles both network contribution and service management. This will be split into two separate services (though with a single sign on): Console, and Services. The Services portal (services.edge.network) will be for management of network services such as Content Delivery, whereas Console will be restricted to network contribution only (e.g. Stakes, Devices, Earnings etc).
 
-### Console Payments
-Payment platform to accept fiat payments and conversion to $EDGE through the new console.
+## Transition to PAYG Billing
 
-### Exposed public API for third party integration. 
-Public API to expose device data. Limited, but with optional high limit user keys on request.
+We will be moving from subscription based billing to a pay as you go model. This will include a free buffer. This will require some reworking of Services (currently Console) and in API. There will be a monthly (or billing periodic) service that tallies up a customer's network usage and generates a single, itemised bill aggregating all service usage.
 
-### CDN use GRPC for config
-CDN to be configured via encrypted RPC request.
+## Automated Crypto Payments
 
-### CDN use key instead of domain
-Requests to CDN to be made with an app key rather than a domain as a security measure.
+While payment in the Edge Network is possible in crypto today, automated payments are only enables in fiat. We will be providing a series of smart contracts for payment in crypto.
 
-### CDN device benchmarking on launch
-Devices to benchmark CDN on boot to establish a device scoring.
+## Network Load & Monitoring
 
-### CLI MacOS support
-CLI to support MacOS.
+For a while we have had a simple network loading tool named Newton, which has been producing an artificial load on testnet. This has been super useful but we can do more. This service will be rewritten in Golang, will be configurable via Network API and will have a prometheus metrics interface for the reporting of data. Data reported will include metrics such as response time, response code, time-to-first-byte etc. This service will run externally from the network.
 
-### Migrate Services away from Consul
-Services to be indexed outside of Consul.
+## Migration of Network Backbone to Data Centres
 
-### Storage Beta release
-Storage to offer non-persisted limited beta for first phase of distribution tests.
+We are currently running the majority network backbone majority on rented hardware with providers around the world. We will be continuing the move to owned hardware with data centre parters. This will enable more fined-grained routing policies to better support inter-regional data transfers, which is especially useful for storage.
 
-### CDN Cache invalidation (phase 1)
-On a per Gateway basis the clearance of cached files should be possible when authentication is provided.
+## DNS Interfaces
 
-## Q3
+Edge DNS has been in production for over a year and has proven very stable and incredibly fast. We will be providing public interfaces for the use of this services, along with payment mechanisms and monitoring tools.
 
-### Remote attestation service
-R&D project into the viability of Intel SGX using a third party attestation service.
+## Repackaging and Publishing Utilities
 
-### Advanced worker impact score
-Gateways will load balance requests based on the a impact score algorithm.
-
-### DNS in Console
-Interface for creation and editing of DNS zones and records.
-
-### CLI Watch service
-A command line interface visualiser of device telemetry.
-
-### Storage persisted
-Persist storage data after device redeployment.
-
-### Store DNS usage
-Capture and store DNS telemetry from Stargate.
-
-### Telemetry on Agent
-Improve telemetry and re-introduce proxy service for Agent.
-
-### Telemetry on Host
-Improve telemetry and re-introduce proxy service for Host.
-
-### Payouts based on Host usage
-Accurate payment mechanism to include uptime as well as network traffic and request counts.
-
+At present, a fair amount of the network code is contained in a private, monolithic "utils" package for convenience in development. However, as new tools are developed to support the network it becomes attractive to reorganise some of this code into individual packages to improve code confidence, robustness, and documentation. Additionally, further code can be open sourced. For example, the logger utility will be more usable across multiple products if repackaged individually. Repackaging work has already started and will continue through 2021 as emerging requirements dictate.
