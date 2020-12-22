@@ -15,7 +15,7 @@ We've been auto-generating certificates for a while now using Let's Encrypt, but
 
 ## Build Process
 
-olFor the core network services we are moving away from Jenkins as a build service and replacing it with GitHub Actions. GitHub Actions are a fantastic and cost effective way to build for all the environments we currently support, and doesn't require us to maintain ageing ARM hardware which often comes with patchy support and unreliability issues that can cause all sorts of issues when trying to rapidly build and deploy hot fixes.
+For the core network services we are moving away from Jenkins as a build service and replacing it with GitHub Actions. GitHub Actions are a fantastic and cost effective way to build for all the environments we currently support, and doesn't require us to maintain ageing ARM hardware which often comes with patchy support and unreliability issues that can cause all sorts of issues when trying to rapidly build and deploy hot fixes.
 
 ## Service Flushing and Staggered Deployment
 
